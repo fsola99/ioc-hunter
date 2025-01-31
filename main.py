@@ -1,34 +1,46 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, RedirectResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 import io
 import requests
 import pandas as pd
-import os
+import logging
 
 # Configuración de la API de VirusTotal
 VT_API_KEY = "REDACTED_API_KEY"
 VT_BASE_URL = "https://www.virustotal.com/api/v3/"
 
-app = FastAPI()
+# Configuración de logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = FastAPI(
+    title="VirusTotal API Wrapper",
+    description="Una API para consultar información de VirusTotal con funcionalidades adicionales.",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
 
 # Montar la carpeta "static" para servir el HTML, CSS y JS
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Lista en memoria para almacenar los resultados
+results_memory = []
+
+# Headers para las solicitudes a VirusTotal
+headers = {"x-apikey": VT_API_KEY}
 
 @app.get("/")
 def serve_index():
     """Redirigir la raíz al index.html."""
     return FileResponse("static/index.html")
 
-# Lista en memoria para almacenar los resultados
-results_memory = []
-
-headers = {"x-apikey": VT_API_KEY}
-
 @app.post("/add-result")
 def add_result(result: dict):
     """Agrega un resultado a la memoria."""
     results_memory.append(result)
+    logger.info(f"Resultado añadido: {result}")
     return {"message": "Result added successfully", "data": result}
 
 @app.get("/download-csv")
@@ -53,6 +65,7 @@ def check_hash(file_hash: str):
     # Obtener información básica del archivo
     file_info_response = requests.get(f"{VT_BASE_URL}files/{file_hash}", headers=headers)
     if file_info_response.status_code != 200:
+        logger.error(f"No se pudo obtener información del hash: {file_hash}")
         return JSONResponse(content={"error": "No se pudo obtener información del hash"}, media_type="application/json")
 
     file_info_data = file_info_response.json()
@@ -90,11 +103,28 @@ def check_hash(file_hash: str):
                 })
             mitre_ttps[sandbox_name] = tactics
 
+    # Obtener información de sandbox (comportamiento)
+    sandbox_response = requests.get(f"{VT_BASE_URL}files/{file_hash}/behaviour_summary", headers=headers)
+    sandbox_info = {}
+    if sandbox_response.status_code == 200:
+        sandbox_data = sandbox_response.json().get("data", {})
+        sandbox_info = {
+            "Servicios Iniciados": sandbox_data.get("services_started", []),
+            #"Coincidencias de Firmas": sandbox_data.get("signature_matches", []),
+            "Procesos Creados": sandbox_data.get("processes_created", []),
+            "Mutexes Creados": sandbox_data.get("mutexes_created", []),
+            "Búsquedas DNS": sandbox_data.get("dns_lookups", []),
+            "Archivos Abiertos": sandbox_data.get("files_opened", []),
+            "Módulos Cargados": sandbox_data.get("modules_loaded", []),
+            "Claves de Registro Abiertas": sandbox_data.get("registry_keys_opened", []),
+            "Procesos Terminados": sandbox_data.get("processes_terminated", []),
+        }
 
     # Información relevante para una empresa financiera
     financial_info = {
         "Es Ransomware?": "ransomware" in attributes.get("tags", []),
-        "Es un Banking Trojan (aka Banker)?": "banker" in attributes.get("tags", [])
+        "Es un Banking Trojan (aka Banker)?": "banker" in attributes.get("tags", []),
+        "Robo de Credenciales": "credential-stealing" in attributes.get("tags", []),
     }
 
     # Formatear la respuesta final
@@ -117,9 +147,18 @@ def check_hash(file_hash: str):
             "Fecha de Primer Análisis": attributes.get("first_submission_date", "N/A"),
             "Fecha de Último Análisis": attributes.get("last_submission_date", "N/A"),
             "MITRE TTPs": mitre_ttps,
+            "Información de Sandbox": sandbox_info,
             "Información relacionada con el sector financiero": financial_info
         }
     }
 
     results_memory.append(formatted_data)
+    logger.info(f"Información obtenida para el hash: {file_hash}")
     return JSONResponse(content=formatted_data, media_type="application/json")
+
+@app.delete("/clear-results")
+def clear_results():
+    """Elimina todos los resultados almacenados en memoria."""
+    results_memory.clear()
+    logger.info("Resultados en memoria eliminados.")
+    return {"message": "Todos los resultados han sido eliminados."}
