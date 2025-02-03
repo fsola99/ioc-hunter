@@ -16,18 +16,18 @@
         <div class="text-center relative z-10">
             <h1 class="text-6xl font-bold text-black drop-shadow-lg">IoC Hunter</h1>
             <div class="mt-6 flex justify-center">
-                <input type="text" id="ioc-input" placeholder="Insert Indicator (Hash, IP Address, Or Domain)" 
+                <input type="text" id="ioc-input" placeholder="Insert a Hash" 
                     class="w-96 p-3 text-white bg-black rounded-md focus:outline-none">
                 <button onclick="searchIoC()" class="ml-2 px-4 py-3 bg-black text-white rounded-md hover:bg-gray-700">Search</button>
             </div>
             
             <!-- Download CSV Button -->
-            <div id="boton-csv" class="mt-4 hidden">
+            <div id="csv-button" class="mt-4 hidden">
                 <button onclick="downloadCSV()" class="px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-800">Download CSV</button>
                 <button onclick="clearResults()" class="ml-2 px-4 py-3 bg-red-600 text-white rounded-md hover:bg-red-800">Clear Results</button>
             </div>
 
-            <!-- Output, oculto inicialmente -->
+            <!-- Output, initially hidden -->
             <div id="output" class="mt-6 p-4 bg-white text-black rounded-lg hidden text-left overflow-auto max-w-3xl mx-auto w-full max-h-96"></div>
         </div>
     </div>
@@ -36,25 +36,25 @@
         function searchIoC() {
             const ioc = document.getElementById('ioc-input').value.trim();
             if (!ioc) {
-                alert("Por favor ingrese un indicador");
+                alert("Please enter an indicator");
                 return;
             }
 
             let endpoint = `/check-hash/${ioc}`;
 
-            console.log(`Consultando: ${endpoint}`); // Debugging
+            console.log(`Querying: ${endpoint}`); // Debugging
 
             fetch(endpoint)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Error en la respuesta del servidor');
+                        throw new Error('Server response error');
                     }
                     return response.json();
                 })
                 .then(data => {
                     displayResults(data);
                     document.getElementById("output").classList.remove("hidden");
-                    document.getElementById("boton-csv").classList.remove("hidden");
+                    document.getElementById("csv-button").classList.remove("hidden");
                 })
                 .catch(error => {
                     document.getElementById("output").innerText = `Error: ${error.message}`;
@@ -64,9 +64,9 @@
 
         function displayResults(data) {
             const output = document.getElementById("output");
-            output.innerHTML = ""; // Limpiar el contenido anterior
+            output.innerHTML = ""; // Clear previous content
 
-            // Función para crear secciones colapsables
+            // Function to create collapsible sections
             const createCollapsibleSection = (title, content) => {
                 const section = document.createElement("div");
                 section.className = "mb-4";
@@ -91,50 +91,50 @@
                 return section;
             };
 
-            // Mostrar información básica
+            // Display basic file information
             const basicInfo = `
-                <p><strong>MD5:</strong> ${data["Archivo Analizado"]["MD5"]}</p>
-                <p><strong>SHA-1:</strong> ${data["Archivo Analizado"]["SHA-1"]}</p>
-                <p><strong>SHA-256:</strong> ${data["Archivo Analizado"]["SHA-256"]}</p>
-                <p><strong>Tipo de Archivo:</strong> ${data["Archivo Analizado"]["Tipo de Archivo"]}</p>
-                <p><strong>Tamaño (bytes):</strong> ${data["Archivo Analizado"]["Tamaño (bytes)"]}</p>
+                <p><strong>MD5:</strong> ${data["File Analysis"]["MD5"]}</p>
+                <p><strong>SHA-1:</strong> ${data["File Analysis"]["SHA-1"]}</p>
+                <p><strong>SHA-256:</strong> ${data["File Analysis"]["SHA-256"]}</p>
+                <p><strong>File Type:</strong> ${data["File Analysis"]["File Type"]}</p>
+                <p><strong>File Size (bytes):</strong> ${data["File Analysis"]["File Size (bytes)"]}</p>
             `;
-            output.appendChild(createCollapsibleSection("Archivo Analizado", basicInfo));
+            output.appendChild(createCollapsibleSection("File Analysis", basicInfo));
 
-            // Mostrar análisis de VirusTotal
+            // Display VirusTotal analysis
             const analysisInfo = `
-                <p><strong>Malicioso:</strong> ${data["Análisis de VirusTotal"]["Malicioso"]}</p>
-                <p><strong>Sospechoso:</strong> ${data["Análisis de VirusTotal"]["Sospechoso"]}</p>
-                <p><strong>No Detectado:</strong> ${data["Análisis de VirusTotal"]["No Detectado"]}</p>
-                <p><strong>Etiquetas:</strong> ${data["Análisis de VirusTotal"]["Etiquetas"]}</p>
-                <p><strong>Nombres Asociados:</strong> ${data["Análisis de VirusTotal"]["Nombres Asociados"]}</p>
+                <p><strong>Malicious:</strong> ${data["VirusTotal Analysis"]["Malicious"]}</p>
+                <p><strong>Suspicious:</strong> ${data["VirusTotal Analysis"]["Suspicious"]}</p>
+                <p><strong>Undetected:</strong> ${data["VirusTotal Analysis"]["Undetected"]}</p>
+                <p><strong>Tags:</strong> ${data["VirusTotal Analysis"]["Tags"]}</p>
+                <p><strong>Associated Names:</strong> ${data["VirusTotal Analysis"]["Associated Names"]}</p>
             `;
-            output.appendChild(createCollapsibleSection("Análisis de VirusTotal", analysisInfo));
+            output.appendChild(createCollapsibleSection("VirusTotal Analysis", analysisInfo));
 
-            // Mostrar información adicional
+            // Display additional information
             const additionalInfo = `
-                <p><strong>Fecha de Primer Análisis:</strong> ${data["Información Adicional"]["Fecha de Primer Análisis"]}</p>
-                <p><strong>Fecha de Último Análisis:</strong> ${data["Información Adicional"]["Fecha de Último Análisis"]}</p>
+                <p><strong>First Analysis Date:</strong> ${data["Additional Information"]["First Analysis Date"]}</p>
+                <p><strong>Last Analysis Date:</strong> ${data["Additional Information"]["Last Analysis Date"]}</p>
             `;
-            output.appendChild(createCollapsibleSection("Información Adicional", additionalInfo));
+            output.appendChild(createCollapsibleSection("Additional Information", additionalInfo));
 
-            // Mostrar información de Sandbox (antes de las TTPs)
-            const sandboxInfo = Object.entries(data["Información Adicional"]["Información de Sandbox"])
+            // Display Sandbox information
+            const sandboxInfo = Object.entries(data["Additional Information"]["Sandbox Information"])
                 .map(([key, value]) => `
                     <p><strong>${key}:</strong> ${Array.isArray(value) ? value.join(", ") : value}</p>
                 `).join("");
-            output.appendChild(createCollapsibleSection("Información de Sandbox", sandboxInfo));
+            output.appendChild(createCollapsibleSection("Sandbox Information", sandboxInfo));
 
-            // Mostrar información financiera (antes de las TTPs)
+            // Display financial sector information
             const financialInfo = `
-                <p><strong>Es Ransomware?:</strong> ${data["Información Adicional"]["Información relacionada con el sector financiero"]["Es Ransomware?"]}</p>
-                <p><strong>Es un Banking Trojan (aka Banker)?:</strong> ${data["Información Adicional"]["Información relacionada con el sector financiero"]["Es un Banking Trojan (aka Banker)?"]}</p>
-                <p><strong>Robo de Credenciales:</strong> ${data["Información Adicional"]["Información relacionada con el sector financiero"]["Robo de Credenciales"]}</p>
+                <p><strong>Is Ransomware?:</strong> ${data["Additional Information"]["Financial Sector Information"]["Is Ransomware?"]}</p>
+                <p><strong>Is Banking Trojan?:</strong> ${data["Additional Information"]["Financial Sector Information"]["Is Banking Trojan?"]}</p>
+                <p><strong>Is Credential Stealer?:</strong> ${data["Additional Information"]["Financial Sector Information"]["Is Credential Stealer?"]}</p>
             `;
-            output.appendChild(createCollapsibleSection("Información relacionada al sector", financialInfo));
+            output.appendChild(createCollapsibleSection("Financial Sector Information", financialInfo));
 
-            // Mostrar MITRE TTPs
-            const mitreTTPs = Object.entries(data["Información Adicional"]["MITRE TTPs"]);
+            // Display MITRE TTPs
+            const mitreTTPs = Object.entries(data["Additional Information"]["MITRE TTPs"]);
             if (mitreTTPs.length > 0) {
                 const ttpSection = document.createElement("div");
                 ttpSection.className = "mb-4";
@@ -147,19 +147,19 @@
                 mitreTTPs.forEach(([sandbox, tactics]) => {
                     const sandboxSection = createCollapsibleSection(
                         `Sandbox: ${sandbox}`,
-                        "" // Contenido vacío, se llenará con tácticas
+                        "" // Empty content, will be filled with tactics
                     );
 
                     tactics.forEach(tactic => {
                         const tacticSection = createCollapsibleSection(
-                            `${tactic["Nombre"]} (${tactic["ID"]})`,
-                            "" // Contenido vacío, se llenará con técnicas
+                            `${tactic["Name"]} (${tactic["ID"]})`,
+                            "" // Empty content, will be filled with techniques
                         );
 
-                        tactic["Técnicas"].forEach(technique => {
+                        tactic["Techniques"].forEach(technique => {
                             const techniqueSection = createCollapsibleSection(
-                                `${technique["Nombre"]} (${technique["ID"]})`,
-                                `<p><strong>Description:</strong> ${technique["Descripción"]}</p>`
+                                `${technique["Name"]} (${technique["ID"]})`,
+                                `<p><strong>Description:</strong> ${technique["Description"]}</p>`
                             );
                             tacticSection.querySelector("div:last-child").appendChild(techniqueSection);
                         });
@@ -182,7 +182,7 @@
             fetch("/clear-results", { method: "DELETE" })
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Error al limpiar los resultados');
+                        throw new Error('Error clearing results');
                     }
                     return response.json();
                 })
@@ -190,14 +190,14 @@
                     alert(data.message);
                     document.getElementById("output").innerHTML = "";
                     document.getElementById("output").classList.add("hidden");
-                    document.getElementById("boton-csv").classList.add("hidden");
+                    document.getElementById("csv-button").classList.add("hidden");
                 })
                 .catch(error => {
                     alert(`Error: ${error.message}`);
                 });
         }
 
-        // Permitir enviar con Enter
+        // Allow submission with Enter key
         document.getElementById("ioc-input").addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
                 event.preventDefault();
