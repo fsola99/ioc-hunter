@@ -118,40 +118,60 @@
             `;
             output.appendChild(createCollapsibleSection("Información Adicional", additionalInfo));
 
-            // Mostrar MITRE TTPs
-            const mitreTTPs = Object.entries(data["Información Adicional"]["MITRE TTPs"])
-                .map(([sandbox, tactics]) => `
-                    <div class="mb-4">
-                        <h3 class="font-bold">${sandbox}</h3>
-                        ${tactics.map(tactic => `
-                            <div class="ml-4">
-                                <p><strong>Táctica:</strong> ${tactic["Nombre"]}</p>
-                                ${tactic["Técnicas"].map(technique => `
-                                    <div class="ml-4">
-                                        <p><strong>Técnica:</strong> ${technique["Nombre"]}</p>
-                                        <p><strong>Descripción:</strong> ${technique["Descripción"]}</p>
-                                    </div>
-                                `).join("")}
-                            </div>
-                        `).join("")}
-                    </div>
-                `).join("");
-            output.appendChild(createCollapsibleSection("MITRE TTPs", mitreTTPs));
-
-            // Mostrar información de Sandbox
+            // Mostrar información de Sandbox (antes de las TTPs)
             const sandboxInfo = Object.entries(data["Información Adicional"]["Información de Sandbox"])
                 .map(([key, value]) => `
                     <p><strong>${key}:</strong> ${Array.isArray(value) ? value.join(", ") : value}</p>
                 `).join("");
             output.appendChild(createCollapsibleSection("Información de Sandbox", sandboxInfo));
 
-            // Mostrar información financiera
+            // Mostrar información financiera (antes de las TTPs)
             const financialInfo = `
                 <p><strong>Es Ransomware?:</strong> ${data["Información Adicional"]["Información relacionada con el sector financiero"]["Es Ransomware?"]}</p>
                 <p><strong>Es un Banking Trojan (aka Banker)?:</strong> ${data["Información Adicional"]["Información relacionada con el sector financiero"]["Es un Banking Trojan (aka Banker)?"]}</p>
                 <p><strong>Robo de Credenciales:</strong> ${data["Información Adicional"]["Información relacionada con el sector financiero"]["Robo de Credenciales"]}</p>
             `;
             output.appendChild(createCollapsibleSection("Información relacionada al sector", financialInfo));
+
+            // Mostrar MITRE TTPs
+            const mitreTTPs = Object.entries(data["Información Adicional"]["MITRE TTPs"]);
+            if (mitreTTPs.length > 0) {
+                const ttpSection = document.createElement("div");
+                ttpSection.className = "mb-4";
+
+                const ttpHeader = document.createElement("div");
+                ttpHeader.className = "font-bold text-xl mb-4";
+                ttpHeader.textContent = "MITRE TTPs";
+                ttpSection.appendChild(ttpHeader);
+
+                mitreTTPs.forEach(([sandbox, tactics]) => {
+                    const sandboxSection = createCollapsibleSection(
+                        `Sandbox: ${sandbox}`,
+                        "" // Contenido vacío, se llenará con tácticas
+                    );
+
+                    tactics.forEach(tactic => {
+                        const tacticSection = createCollapsibleSection(
+                            `${tactic["Nombre"]} (${tactic["ID"]})`,
+                            "" // Contenido vacío, se llenará con técnicas
+                        );
+
+                        tactic["Técnicas"].forEach(technique => {
+                            const techniqueSection = createCollapsibleSection(
+                                `${technique["Nombre"]} (${technique["ID"]})`,
+                                `<p><strong>Description:</strong> ${technique["Descripción"]}</p>`
+                            );
+                            tacticSection.querySelector("div:last-child").appendChild(techniqueSection);
+                        });
+
+                        sandboxSection.querySelector("div:last-child").appendChild(tacticSection);
+                    });
+
+                    ttpSection.appendChild(sandboxSection);
+                });
+
+                output.appendChild(ttpSection);
+            }
         }
 
         function downloadCSV() {

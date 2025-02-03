@@ -49,13 +49,67 @@ def download_csv():
     if not results_memory:
         return {"message": "No data available"}
 
-    df = pd.DataFrame(results_memory)
+    # Diccionario para almacenar los datos del CSV
+    csv_data = {}
+
+    # Extraer información básica (un solo valor por campo)
+    result = results_memory[0]  # Asumimos que solo hay un resultado (un solo hash)
+    archivo_analizado = result.get("Archivo Analizado", {})
+    analisis_virustotal = result.get("Análisis de VirusTotal", {})
+    informacion_adicional = result.get("Información Adicional", {})
+    sandbox_info = informacion_adicional.get("Información de Sandbox", {})
+    financial_info = informacion_adicional.get("Información relacionada con el sector financiero", {})
+
+    # Agregar campos de un solo valor
+    csv_data["MD5"] = [archivo_analizado.get("MD5", "N/A")]
+    csv_data["SHA-1"] = [archivo_analizado.get("SHA-1", "N/A")]
+    csv_data["SHA-256"] = [archivo_analizado.get("SHA-256", "N/A")]
+    csv_data["Tipo de Archivo"] = [archivo_analizado.get("Tipo de Archivo", "N/A")]
+    csv_data["Tamaño (bytes)"] = [archivo_analizado.get("Tamaño (bytes)", "N/A")]
+
+    csv_data["Malicioso"] = [analisis_virustotal.get("Malicioso", "N/A")]
+    csv_data["Sospechoso"] = [analisis_virustotal.get("Sospechoso", "N/A")]
+    csv_data["No Detectado"] = [analisis_virustotal.get("No Detectado", "N/A")]
+    csv_data["Etiquetas"] = [analisis_virustotal.get("Etiquetas", "N/A")]
+    csv_data["Nombres Asociados"] = [analisis_virustotal.get("Nombres Asociados", "N/A")]
+
+    csv_data["Fecha de Primer Análisis"] = [informacion_adicional.get("Fecha de Primer Análisis", "N/A")]
+    csv_data["Fecha de Último Análisis"] = [informacion_adicional.get("Fecha de Último Análisis", "N/A")]
+
+    csv_data["Servicios Iniciados"] = sandbox_info.get("Servicios Iniciados", [])
+    csv_data["Procesos Creados"] = sandbox_info.get("Procesos Creados", [])
+    csv_data["Mutexes Creados"] = sandbox_info.get("Mutexes Creados", [])
+    csv_data["Búsquedas DNS"] = [f"{dns['hostname']}: {', '.join(dns['resolved_ips'])}" for dns in sandbox_info.get("Búsquedas DNS", [])]
+    csv_data["Archivos Abiertos"] = sandbox_info.get("Archivos Abiertos", [])
+    csv_data["Módulos Cargados"] = sandbox_info.get("Módulos Cargados", [])
+    csv_data["Claves de Registro Abiertas"] = sandbox_info.get("Claves de Registro Abiertas", [])
+    csv_data["Procesos Terminados"] = sandbox_info.get("Procesos Terminados", [])
+
+    csv_data["Es Ransomware?"] = [financial_info.get("Es Ransomware?", "N/A")]
+    csv_data["Es un Banking Trojan (aka Banker)?"] = [financial_info.get("Es un Banking Trojan (aka Banker)?", "N/A")]
+    csv_data["Es credential stealer?"] = [financial_info.get("Robo de Credenciales", "N/A")]
+
+    # Extraer las TTPs de cada sandbox (solo IDs de técnicas)
+    mitre_ttps = informacion_adicional.get("MITRE TTPs", {})
+    for sandbox_name, ttp_list in mitre_ttps.items():
+        column_name = f"MITRE TTPs_{sandbox_name}"
+        technique_ids = []
+        for ttp in ttp_list:
+            # Extraer IDs de técnicas dentro de cada táctica
+            if "Técnicas" in ttp:
+                for technique in ttp["Técnicas"]:
+                    technique_ids.append(technique.get("ID", "N/A"))
+        csv_data[column_name] = technique_ids
+
+    # Crear un DataFrame a partir del diccionario
+    df = pd.DataFrame({key: pd.Series(value) for key, value in csv_data.items()})
+
+    # Crear un buffer en memoria para el CSV
     stream = io.StringIO()
     df.to_csv(stream, index=False)
 
-    response = StreamingResponse(
-        io.StringIO(stream.getvalue()), media_type="text/csv"
-    )
+    # Configurar la respuesta para descargar el CSV
+    response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv")
     response.headers["Content-Disposition"] = "attachment; filename=results.csv"
     return response
 
