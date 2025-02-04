@@ -1,14 +1,11 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from pydantic import BaseModel
 import io
 import requests
 import pandas as pd
 import logging
-
-# VirusTotal API configuration
-VT_API_KEY = "REDACTED_API_KEY"
-VT_BASE_URL = "https://www.virustotal.com/api/v3/"
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -25,23 +22,132 @@ app = FastAPI(
 # Mount the "static" folder to serve HTML, CSS, and JS files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# In-memory list to store results
+# In-memory storage for results and API key
 results_memory = []
+user_api_key = None  # Store the user's API key
 
-# Headers for VirusTotal API requests
-headers = {"x-apikey": VT_API_KEY}
+# Pydantic model for API key input
+class ApiKeyInput(BaseModel):
+    api_key: str
 
 @app.get("/")
 def serve_index():
     """Serve the index.html file at the root endpoint."""
     return FileResponse("static/index.html")
 
-@app.post("/add-result")
-def add_result(result: dict):
-    """Add a result to the in-memory list."""
-    results_memory.append(result)
-    logger.info(f"Result added: {result}")
-    return {"message": "Result added successfully", "data": result}
+@app.post("/set-api-key")
+def set_api_key(api_key_input: ApiKeyInput):
+    """Set the user's VirusTotal API key."""
+    global user_api_key
+    if not api_key_input.api_key:
+        raise HTTPException(status_code=400, detail="API key is required.")
+    user_api_key = api_key_input.api_key
+    logger.info("VirusTotal API key set successfully.")
+    return {"message": "API key set successfully"}
+
+@app.get("/check-hash/{file_hash}")
+def check_hash(file_hash: str):
+    """Check a file hash in VirusTotal using the user's API key."""
+    global user_api_key
+    if not user_api_key:
+        raise HTTPException(status_code=400, detail="VirusTotal API key is not set. Please provide an API key.")
+
+    headers = {"x-apikey": user_api_key}
+    vt_base_url = "https://www.virustotal.com/api/v3/"
+
+    # Get basic file information
+    file_info_response = requests.get(f"{vt_base_url}files/{file_hash}", headers=headers)
+    if file_info_response.status_code != 200:
+        logger.error(f"Could not retrieve information for hash: {file_hash}")
+        raise HTTPException(status_code=file_info_response.status_code, detail="Could not retrieve information for the hash.")
+
+    file_info_data = file_info_response.json()
+    attributes = file_info_data.get("data", {}).get("attributes", {})
+
+    # Get behavior and MITRE TTPs information
+    behaviour_response = requests.get(f"{vt_base_url}files/{file_hash}/behaviour_mitre_trees", headers=headers)
+    mitre_ttps = {}
+    if behaviour_response.status_code == 200:
+        behaviour_data = behaviour_response.json()
+        for sandbox_name, sandbox_data in behaviour_data.get("data", {}).items():
+            tactics = []
+            for tactic in sandbox_data.get("tactics", []):
+                techniques = []
+                for technique in tactic.get("techniques", []):
+                    signatures = []
+                    for signature in technique.get("signatures", []):
+                        signatures.append({
+                            "Severity": signature.get("severity", "N/A"),
+                            "Description": signature.get("description", "N/A")
+                        })
+                    techniques.append({
+                        "ID": technique.get("id", "N/A"),
+                        "Name": technique.get("name", "N/A"),
+                        "Description": technique.get("description", "N/A"),
+                        "MITRE Link": technique.get("link", "N/A"),
+                        "Signatures": signatures
+                    })
+                tactics.append({
+                    "ID": tactic.get("id", "N/A"),
+                    "Name": tactic.get("name", "N/A"),
+                    "Description": tactic.get("description", "N/A"),
+                    "MITRE Link": tactic.get("link", "N/A"),
+                    "Techniques": techniques
+                })
+            mitre_ttps[sandbox_name] = tactics
+
+    # Get sandbox behavior information
+    sandbox_response = requests.get(f"{vt_base_url}files/{file_hash}/behaviour_summary", headers=headers)
+    sandbox_info = {}
+    if sandbox_response.status_code == 200:
+        sandbox_data = sandbox_response.json().get("data", {})
+        sandbox_info = {
+            "Services Started": sandbox_data.get("services_started", []),
+            "Processes Created": sandbox_data.get("processes_created", []),
+            "Mutexes Created": sandbox_data.get("mutexes_created", []),
+            "DNS Lookups": sandbox_data.get("dns_lookups", []),
+            "Files Opened": sandbox_data.get("files_opened", []),
+            "Modules Loaded": sandbox_data.get("modules_loaded", []),
+            "Registry Keys Opened": sandbox_data.get("registry_keys_opened", []),
+            "Processes Terminated": sandbox_data.get("processes_terminated", []),
+        }
+
+    # Financial sector relevant information
+    financial_info = {
+        "Is Ransomware?": "ransomware" in attributes.get("tags", []),
+        "Is Banking Trojan?": "banker" in attributes.get("tags", []),
+        "Is Credential Stealer?": "credential-stealing" in attributes.get("tags", []),
+    }
+
+    # Format the final response
+    formatted_data = {
+        "File Analysis": {
+            "MD5": attributes.get("md5", "N/A"),
+            "SHA-1": attributes.get("sha1", "N/A"),
+            "SHA-256": attributes.get("sha256", "N/A"),
+            "File Type": attributes.get("type_description", "Unknown"),
+            "File Size (bytes)": attributes.get("size", "N/A")
+        },
+        "VirusTotal Analysis": {
+            "Malicious": attributes.get("last_analysis_stats", {}).get("malicious", 0),
+            "Suspicious": attributes.get("last_analysis_stats", {}).get("suspicious", 0),
+            "Undetected": attributes.get("last_analysis_stats", {}).get("undetected", 0),
+            "Tags": ", ".join(attributes.get("tags", [])) or "N/A",
+            "Associated Names": ", ".join(attributes.get("names", [])) or "N/A"
+        },
+        "Additional Information": {
+            "First Analysis Date": attributes.get("first_submission_date", "N/A"),
+            "Last Analysis Date": attributes.get("last_submission_date", "N/A"),
+            "MITRE TTPs": mitre_ttps,
+            "Sandbox Information": sandbox_info,
+            "Financial Sector Information": financial_info
+        }
+    }
+
+    results_memory.append(formatted_data)
+    logger.info(f"Information retrieved for hash: {file_hash}")
+    return JSONResponse(content=formatted_data, media_type="application/json")
+
 
 @app.get("/download-csv")
 def download_csv():
@@ -112,101 +218,6 @@ def download_csv():
     response.headers["Content-Disposition"] = "attachment; filename=results.csv"
     return response
 
-@app.get("/check-hash/{file_hash}")
-def check_hash(file_hash: str):
-    """Check a file hash in VirusTotal and return formatted information."""
-    # Get basic file information
-    file_info_response = requests.get(f"{VT_BASE_URL}files/{file_hash}", headers=headers)
-    if file_info_response.status_code != 200:
-        logger.error(f"Could not retrieve information for hash: {file_hash}")
-        return JSONResponse(content={"error": "Could not retrieve information for the hash"}, media_type="application/json")
-
-    file_info_data = file_info_response.json()
-    attributes = file_info_data.get("data", {}).get("attributes", {})
-
-    # Get behavior and MITRE TTPs information
-    behaviour_response = requests.get(f"{VT_BASE_URL}files/{file_hash}/behaviour_mitre_trees", headers=headers)
-    mitre_ttps = {}
-    if behaviour_response.status_code == 200:
-        behaviour_data = behaviour_response.json()
-        for sandbox_name, sandbox_data in behaviour_data.get("data", {}).items():
-            tactics = []
-            for tactic in sandbox_data.get("tactics", []):
-                techniques = []
-                for technique in tactic.get("techniques", []):
-                    signatures = []
-                    for signature in technique.get("signatures", []):
-                        signatures.append({
-                            "Severity": signature.get("severity", "N/A"),
-                            "Description": signature.get("description", "N/A")
-                        })
-                    techniques.append({
-                        "ID": technique.get("id", "N/A"),
-                        "Name": technique.get("name", "N/A"),
-                        "Description": technique.get("description", "N/A"),
-                        "MITRE Link": technique.get("link", "N/A"),
-                        "Signatures": signatures
-                    })
-                tactics.append({
-                    "ID": tactic.get("id", "N/A"),
-                    "Name": tactic.get("name", "N/A"),
-                    "Description": tactic.get("description", "N/A"),
-                    "MITRE Link": tactic.get("link", "N/A"),
-                    "Techniques": techniques
-                })
-            mitre_ttps[sandbox_name] = tactics
-
-    # Get sandbox behavior information
-    sandbox_response = requests.get(f"{VT_BASE_URL}files/{file_hash}/behaviour_summary", headers=headers)
-    sandbox_info = {}
-    if sandbox_response.status_code == 200:
-        sandbox_data = sandbox_response.json().get("data", {})
-        sandbox_info = {
-            "Services Started": sandbox_data.get("services_started", []),
-            "Processes Created": sandbox_data.get("processes_created", []),
-            "Mutexes Created": sandbox_data.get("mutexes_created", []),
-            "DNS Lookups": sandbox_data.get("dns_lookups", []),
-            "Files Opened": sandbox_data.get("files_opened", []),
-            "Modules Loaded": sandbox_data.get("modules_loaded", []),
-            "Registry Keys Opened": sandbox_data.get("registry_keys_opened", []),
-            "Processes Terminated": sandbox_data.get("processes_terminated", []),
-        }
-
-    # Financial sector relevant information
-    financial_info = {
-        "Is Ransomware?": "ransomware" in attributes.get("tags", []),
-        "Is Banking Trojan?": "banker" in attributes.get("tags", []),
-        "Is Credential Stealer?": "credential-stealing" in attributes.get("tags", []),
-    }
-
-    # Format the final response
-    formatted_data = {
-        "File Analysis": {
-            "MD5": attributes.get("md5", "N/A"),
-            "SHA-1": attributes.get("sha1", "N/A"),
-            "SHA-256": attributes.get("sha256", "N/A"),
-            "File Type": attributes.get("type_description", "Unknown"),
-            "File Size (bytes)": attributes.get("size", "N/A")
-        },
-        "VirusTotal Analysis": {
-            "Malicious": attributes.get("last_analysis_stats", {}).get("malicious", 0),
-            "Suspicious": attributes.get("last_analysis_stats", {}).get("suspicious", 0),
-            "Undetected": attributes.get("last_analysis_stats", {}).get("undetected", 0),
-            "Tags": ", ".join(attributes.get("tags", [])) or "N/A",
-            "Associated Names": ", ".join(attributes.get("names", [])) or "N/A"
-        },
-        "Additional Information": {
-            "First Analysis Date": attributes.get("first_submission_date", "N/A"),
-            "Last Analysis Date": attributes.get("last_submission_date", "N/A"),
-            "MITRE TTPs": mitre_ttps,
-            "Sandbox Information": sandbox_info,
-            "Financial Sector Information": financial_info
-        }
-    }
-
-    results_memory.append(formatted_data)
-    logger.info(f"Information retrieved for hash: {file_hash}")
-    return JSONResponse(content=formatted_data, media_type="application/json")
 
 @app.delete("/clear-results")
 def clear_results():

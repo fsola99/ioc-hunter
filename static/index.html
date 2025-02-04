@@ -15,8 +15,17 @@
         <!-- Content -->
         <div class="text-center relative z-10">
             <h1 class="text-6xl font-bold text-black drop-shadow-lg">IoC Hunter</h1>
+            
+            <!-- API Key Input -->
+            <div id="key-div" class="mt-6 flex justify-center">
+                <input type="text" id="api-key-input" placeholder="Enter your VirusTotal API Key" 
+                    class="w-96 p-3 text-white bg-black rounded-md focus:outline-none">
+                <button onclick="setApiKey()" class="ml-2 px-4 py-3 bg-black text-white rounded-md hover:bg-gray-700">Set API Key</button>
+            </div>
+
+            <!-- IoC Input -->
             <div class="mt-6 flex justify-center">
-                <input type="text" id="ioc-input" placeholder="Insert a Hash" 
+                <input type="text" id="ioc-input" placeholder="Insert Indicator (Hash, IP Address, Or Domain)" 
                     class="w-96 p-3 text-white bg-black rounded-md focus:outline-none">
                 <button onclick="searchIoC()" class="ml-2 px-4 py-3 bg-black text-white rounded-md hover:bg-gray-700">Search</button>
             </div>
@@ -33,6 +42,35 @@
     </div>
 
     <script>
+        function setApiKey() {
+            const apiKey = document.getElementById('api-key-input').value.trim();
+            if (!apiKey) {
+                alert("Please enter your VirusTotal API key.");
+                return;
+            }
+
+            fetch("/set-api-key", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ api_key: apiKey }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.detail); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert(data.message);
+                document.getElementById("key-div").classList.add("hidden");
+            })
+            .catch(error => {
+                alert(`Error: ${error.message}`);
+            });
+        }
+
         function searchIoC() {
             const ioc = document.getElementById('ioc-input').value.trim();
             if (!ioc) {
@@ -40,14 +78,10 @@
                 return;
             }
 
-            let endpoint = `/check-hash/${ioc}`;
-
-            console.log(`Querying: ${endpoint}`); // Debugging
-
-            fetch(endpoint)
+            fetch(`/check-hash/${ioc}`)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Server response error');
+                        return response.json().then(err => { throw new Error(err.detail); });
                     }
                     return response.json();
                 })
