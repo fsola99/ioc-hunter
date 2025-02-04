@@ -49,6 +49,7 @@
                 return;
             }
 
+            console.log("Setting API key...");
             fetch("/set-api-key", {
                 method: "POST",
                 headers: {
@@ -63,10 +64,12 @@
                 return response.json();
             })
             .then(data => {
+                console.log("API key set successfully:", data);
                 alert(data.message);
                 document.getElementById("key-div").classList.add("hidden");
             })
             .catch(error => {
+                console.error("Error setting API key:", error);
                 alert(`Error: ${error.message}`);
             });
         }
@@ -78,6 +81,7 @@
                 return;
             }
 
+            console.log("Searching IoC:", ioc);
             fetch(`/check-hash/${ioc}`)
                 .then(response => {
                     if (!response.ok) {
@@ -86,11 +90,13 @@
                     return response.json();
                 })
                 .then(data => {
+                    console.log("IoC search results:", data);
                     displayResults(data);
                     document.getElementById("output").classList.remove("hidden");
                     document.getElementById("csv-button").classList.remove("hidden");
                 })
                 .catch(error => {
+                    console.error("Error searching IoC:", error);
                     document.getElementById("output").innerText = `Error: ${error.message}`;
                     document.getElementById("output").classList.remove("hidden");
                 });
@@ -99,6 +105,8 @@
         function displayResults(data) {
             const output = document.getElementById("output");
             output.innerHTML = ""; // Clear previous content
+
+            console.log("Displaying results...");
 
             // Function to create collapsible sections
             const createCollapsibleSection = (title, content) => {
@@ -128,7 +136,7 @@
             // Function to format Unix timestamp to a readable date
             const formatDate = (timestamp) => {
                 if (!timestamp || timestamp === "N/A") return "N/A";
-                const date = new Date(timestamp * 1000); // Convert to milliseconds
+                const date = new Date(timestamp * 1000);
                 return date.toLocaleString();
             };
 
@@ -228,10 +236,12 @@
         }
 
         function downloadCSV() {
+            console.log("Downloading CSV...");
             window.location.href = "/download-csv";
         }
 
         function clearResults() {
+            console.log("Clearing results...");
             fetch("/clear-results", { method: "DELETE" })
                 .then(response => {
                     if (!response.ok) {
@@ -240,12 +250,14 @@
                     return response.json();
                 })
                 .then(data => {
+                    console.log("Results cleared:", data);
                     alert(data.message);
                     document.getElementById("output").innerHTML = "";
                     document.getElementById("output").classList.add("hidden");
                     document.getElementById("csv-button").classList.add("hidden");
                 })
                 .catch(error => {
+                    console.error("Error clearing results:", error);
                     alert(`Error: ${error.message}`);
                 });
         }

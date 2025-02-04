@@ -1,0 +1,152 @@
+{
+    "T1003": [
+        "M1015 - Active Directory Configuration",
+        "M1040 - Behavior Prevention on Endpoint",
+        "M1043 - Credential Access Protection",
+        "M1041 - Encrypt Sensitive Information",
+        "M1028 - Operating System Configuration",
+        "M1027 - Password Policies",
+        "M1026 - Privileged Account Management",
+        "M1025 - Privileged Process Integrity",
+        "M1017 - User Training"
+    ],
+    "T1005": [
+        "M1057 - Data Loss Prevention"
+    ],
+    "T1027": [
+        "M1049 - Antivirus/Antimalware",
+        "M1047 - Audit",
+        "M1040 - Behavior Prevention on Endpoint",
+        "M1017 - User Training"
+    ],
+    "T1036": [
+        "M1049 - Antivirus/Antimalware",
+        "M1047 - Audit",
+        "M1040 - Behavior Prevention on Endpoint",
+        "M1045 - Code Signing",
+        "M1038 - Execution Prevention",
+        "M1022 - Restrict File and Directory Permissions",
+        "M1018 - User Account Management",
+        "M1017 - User Training"
+    ],
+    "T1047": [
+        "M1040 - Behavior Prevention on Endpoint",
+        "M1038 - Execution Prevention",
+        "M1026 - Privileged Account Management",
+        "M1018 - User Account Management"
+    ],
+    "T1053": [
+        "M1047 - Audit",
+        "M1028 - Operating System Configuration",
+        "M1026 - Privileged Account Management",
+        "M1022 - Restrict File and Directory Permissions",
+        "M1018 - User Account Management"
+    ],
+    "T1055": [
+        "M1040 - Behavior Prevention on Endpoint",
+        "M1026 - Privileged Account Management"
+    ],
+    "T1059": [
+        "M1049 - Antivirus/Antimalware",
+        "M1047 - Audit",
+        "M1040 - Behavior Prevention on Endpoint",
+        "M1045 - Code Signing",
+        "M1042 - Disable or Remove Feature or Program",
+        "M1038 - Execution Prevention",
+        "M1033 - Limit Software Installation",
+        "M1026 - Privileged Account Management",
+        "M1021 - Restrict Web-Based Content"
+    ],
+    "T1070": [
+        "M1041 - Encrypt Sensitive Information",
+        "M1029 - Remote Data Storage",
+        "M1022 - Restrict File and Directory Permissions"
+    ],
+    "T1071": [
+        "M1037 - Filter Network Traffic",
+        "M1031 - Network Intrusion Prevention"
+    ],
+    "T1095": [
+        "M1037 - Filter Network Traffic",
+        "M1031 - Network Intrusion Prevention",
+        "M1030 - Network Segmentation"
+    ],
+    "T1106": [
+        "M1040 - Behavior Prevention on Endpoint",
+        "M1038 - Execution Prevention"
+    ],
+    "T1129": [
+        "M1038 - Execution Prevention"
+    ],
+    "T1485": [
+        "M1053 - Data Backup",
+        "M1032 - Multi-factor Authentication",
+        "M1018 - User Account Management"
+    ],
+    "T1539": [
+        "M1047 - Audit",
+        "M1032 - Multi-factor Authentication",
+        "M1021 - Restrict Web-Based Content",
+        "M1054 - Software Configuration",
+        "M1051 - Update Software",
+        "M1017 - User Training"
+    ],
+    "T1552": [
+        "M1015 - Active Directory Configuration",
+        "M1047 - Audit",
+        "M1041 - Encrypt Sensitive Information",
+        "M1037 - Filter Network Traffic",
+        "M1035 - Limit Access to Resource Over Network",
+        "M1028 - Operating System Configuration",
+        "M1027 - Password Policies",
+        "M1026 - Privileged Account Management",
+        "M1022 - Restrict File and Directory Permissions",
+        "M1051 - Update Software",
+        "M1017 - User Training"
+    ],
+    "T1555": [
+        "M1027 - Password Policies",
+        "M1026 - Privileged Account Management",
+        "M1051 - Update Software"
+    ],
+    "T1560": [
+        "M1047 - Audit"
+    ],
+    "T1562": [
+        "M1047 - Audit",
+        "M1038 - Execution Prevention",
+        "M1022 - Restrict File and Directory Permissions",
+        "M1024 - Restrict Registry Permissions",
+        "M1054 - Software Configuration",
+        "M1018 - User Account Management"
+    ],
+    "T1564": [
+        "M1049 - Antivirus/Antimalware",
+        "M1013 - Application Developer Guidance",
+        "M1033 - Limit Software Installation"
+    ],
+    "T1568": [
+        "M1031 - Network Intrusion Prevention",
+        "M1021 - Restrict Web-Based Content"
+    ],
+    "T1571": [
+        "M1031 - Network Intrusion Prevention",
+        "M1030 - Network Segmentation"
+    ],
+    "T1573": [
+        "M1031 - Network Intrusion Prevention",
+        "M1020 - SSL/TLS Inspection"
+    ],
+    "T1574": [
+        "M1013 - Application Developer Guidance",
+        "M1047 - Audit",
+        "M1040 - Behavior Prevention on Endpoint",
+        "M1038 - Execution Prevention",
+        "M1022 - Restrict File and Directory Permissions",
+        "M1044 - Restrict Library Loading",
+        "M1024 - Restrict Registry Permissions",
+        "M1051 - Update Software",
+        "M1052 - User Account Control",
+        "M1018 - User Account Management"
+    ]
+}
