@@ -125,6 +125,19 @@
                 return section;
             };
 
+            // Function to format Unix timestamp to a readable date
+            const formatDate = (timestamp) => {
+                if (!timestamp || timestamp === "N/A") return "N/A";
+                const date = new Date(timestamp * 1000); // Convert to milliseconds
+                return date.toLocaleString();
+            };
+
+            // Function to format DNS Lookups
+            const formatDNSLookups = (dnsLookups) => {
+                if (!dnsLookups || dnsLookups.length === 0) return "N/A";
+                return dnsLookups.map(dns => `${dns.hostname}: ${dns.resolved_ips.join(", ")}`).join("<br>");
+            };
+
             // Display basic file information
             const basicInfo = `
                 <p><strong>MD5:</strong> ${data["File Analysis"]["MD5"]}</p>
@@ -147,16 +160,22 @@
 
             // Display additional information
             const additionalInfo = `
-                <p><strong>First Analysis Date:</strong> ${data["Additional Information"]["First Analysis Date"]}</p>
-                <p><strong>Last Analysis Date:</strong> ${data["Additional Information"]["Last Analysis Date"]}</p>
+                <p><strong>First Analysis Date:</strong> ${formatDate(data["Additional Information"]["First Analysis Date"])}</p>
+                <p><strong>Last Analysis Date:</strong> ${formatDate(data["Additional Information"]["Last Analysis Date"])}</p>
             `;
             output.appendChild(createCollapsibleSection("Additional Information", additionalInfo));
 
             // Display Sandbox information
-            const sandboxInfo = Object.entries(data["Additional Information"]["Sandbox Information"])
-                .map(([key, value]) => `
-                    <p><strong>${key}:</strong> ${Array.isArray(value) ? value.join(", ") : value}</p>
-                `).join("");
+            const sandboxInfo = `
+                <p><strong>Services Started:</strong> ${data["Additional Information"]["Sandbox Information"]["Services Started"].join(", ") || "N/A"}</p>
+                <p><strong>Processes Created:</strong> ${data["Additional Information"]["Sandbox Information"]["Processes Created"].join(", ") || "N/A"}</p>
+                <p><strong>Mutexes Created:</strong> ${data["Additional Information"]["Sandbox Information"]["Mutexes Created"].join(", ") || "N/A"}</p>
+                <p><strong>DNS Lookups:</strong> ${formatDNSLookups(data["Additional Information"]["Sandbox Information"]["DNS Lookups"])}</p>
+                <p><strong>Files Opened:</strong> ${data["Additional Information"]["Sandbox Information"]["Files Opened"].join(", ") || "N/A"}</p>
+                <p><strong>Modules Loaded:</strong> ${data["Additional Information"]["Sandbox Information"]["Modules Loaded"].join(", ") || "N/A"}</p>
+                <p><strong>Registry Keys Opened:</strong> ${data["Additional Information"]["Sandbox Information"]["Registry Keys Opened"].join(", ") || "N/A"}</p>
+                <p><strong>Processes Terminated:</strong> ${data["Additional Information"]["Sandbox Information"]["Processes Terminated"].join(", ") || "N/A"}</p>
+            `;
             output.appendChild(createCollapsibleSection("Sandbox Information", sandboxInfo));
 
             // Display financial sector information
