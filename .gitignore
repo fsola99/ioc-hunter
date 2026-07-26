@@ -177,3 +177,17 @@ pyrightconfig.json
 testing.py
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+### Secrets ###
+.env
+.env.local
+
+### Node ###
+node_modules/
+frontend/dist/
+*.local
+npm-debug.log*
+
+### Editors ###
+.vscode/
+.idea/
+.DS_Store

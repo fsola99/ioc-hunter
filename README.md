@@ -1,139 +1,146 @@
 # IoC Hunter
 
-This is a FastAPI-based wrapper for the VirusTotal API. It allows users to query VirusTotal for file hash information, store results in memory, and download the results as a CSV file. The API also provides a simple HTML interface for interacting with the backend.
+Threat intelligence triage for the four things that actually land in a ticket: **file hashes, IP
+addresses, domains and URLs**. Paste an indicator — defanged or not — and get one report shape back,
+whatever type it was.
+
+![IoC Hunter showing a malicious verdict](docs/screenshot-malicious.png)
 
 ---
 
-## Features
+## What it does
 
-- **Hash Lookup**: Query VirusTotal for detailed information about a file hash.
-- **CSV Export**: Download the results of your queries as a CSV file.
-- **In-Memory Storage**: Store query results temporarily in memory.
-- **HTML Interface**: A user-friendly web interface for interacting with the API.
+- **One report shape for every indicator type.** A hash, an IP, a domain and a URL all normalise to
+  the same verdict, engine statistics, reputation and timestamps, with a type-specific detail block
+  underneath. A triage reads the same way regardless of what you were handed.
+- **Reads defanged indicators.** `evil[.]com`, `hxxps://`, `192.168.1[.]1` and `evil(dot)com` are
+  refanged before lookup, so indicators paste straight out of a report or an email.
+- **Maps sandbox techniques to ATT&CK mitigations.** Techniques observed during detonation are
+  matched against MITRE's own technique-to-mitigation data, so the report says what to *do* about a
+  finding, not only what happened.
+- **Pivots between indicators.** Contacted domains and passive DNS resolutions are one click from
+  becoming the next lookup.
+- **Exports the session.** Everything you looked up, one row per indicator, as CSV.
 
----
+## Rate limits, and why the UI is shaped this way
 
-## Endpoints
+VirusTotal's free tier allows **4 requests per minute and 500 per day**. That budget drives the
+design:
 
-### 1. **Set API Key**
-- **Method**: `POST`
-- **Endpoint**: `/set-api-key`
-- **Description**: Set your VirusTotal API key for use in subsequent requests.
-- **Request Body**:
-  ```json
-  {
-    "api_key": "your_virustotal_api_key"
-  }
-  ```
-- **Expected Response**:
-  ```json
-  {
-    "message": "API key set successfully"
-  }
-  ```
+| Action | Upstream requests |
+|---|---|
+| Look up any indicator | 1 |
+| Load sandbox behaviour and ATT&CK | 2, only when you open the tab |
+| Load connected indicators | 1, only when you open the tab |
+| Repeat a lookup within the cache window | 0 |
 
-### 2. **Check Hash**
-- **Method**: `GET`
-- **Endpoint**: `/check-hash/{file_hash}`
-- **Description**: Query VirusTotal for information about a specific file hash.
-- **Expected Response**:
-  ```json
-  {
-    "File Analysis": { ... },
-    "VirusTotal Analysis": { ... },
-    "Additional Information": { ... }
-  }
-  ```
+A primary lookup is always exactly one request. The heavier panels load on demand, and responses are
+cached in-process (15 minutes by default), so re-opening an indicator from the session trail costs
+nothing. When the quota does run out the API returns 429 and the interface says so plainly.
 
-### 3. **Download CSV**
-- **Method**: `GET`
-- **Endpoint**: `/download-csv`
-- **Description**: Download the results of your queries as a CSV file.
-- **Expected Response**: A CSV file named `results.csv`.
+## Running it
 
-### 4. **Clear Results**
-- **Method**: `DELETE`
-- **Endpoint**: `/clear-results`
-- **Description**: Clear all results stored in memory.
-- **Expected Response**:
-  ```json
-  {
-    "message": "All results have been cleared."
-  }
-  ```
+You need a free [VirusTotal API key](https://www.virustotal.com/gui/my-apikey). An optional
+[AbuseIPDB key](https://www.abuseipdb.com/account/api) adds reporting history to IP reports.
 
----
+```bash
+cp .env.example .env
+# edit .env and set VT_API_KEY
+```
 
-## How to Run the API
+### Docker
 
-### Prerequisites
-- Python 3.7 or higher
-- FastAPI (`pip install fastapi`)
-- Uvicorn (`pip install uvicorn`)
-- Requests (`pip install requests`)
-- Pandas (`pip install pandas`)
+```bash
+docker compose up --build
+```
 
-### Steps
-1. Clone the repository or download the code.
-2. Navigate to the project directory.
-3. Install the required dependencies:
-   ```bash
-   pip install fastapi uvicorn requests pandas
-   ```
-4. Run the FastAPI server:
-   ```bash
-   uvicorn main:app --reload
-   ```
-5. The API will be available at `http://127.0.0.1:8000`.
+Then open <http://localhost:8080>.
 
----
+### Locally
 
-## Using the HTML Interface
+Backend:
 
-### Step 1: Set Your VirusTotal API Key
-1. Open the HTML interface by navigating to `http://127.0.0.1:8000` in your browser.
-2. Enter your VirusTotal API key in the "Enter your VirusTotal API Key" field.
-3. Click the "Set API Key" button. You should see a success message.
+```bash
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+uvicorn app.main:app --reload
+```
 
-### Step 2: Search for a Hash
-1. Enter a file hash (MD5, SHA-1, or SHA-256) in the "Insert Indicator (Hash, IP Address, Or Domain)" field.
-2. Click the "Search" button.
-3. The results will be displayed in collapsible sections below the search bar.
+Frontend, in a second shell:
 
-### Step 3: Download Results as CSV
-1. After performing a search, click the "Download CSV" button to download the results as a CSV file.
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-### Step 4: Clear Results
-1. To clear all stored results, click the "Clear Results" button.
+The dev server proxies `/api` to the backend, so open <http://localhost:5173>.
 
----
+To serve everything from the backend alone, build the frontend first (`npm run build`); the API then
+serves `frontend/dist` at the root.
 
-## Example Workflow
+## API
 
-1. Set your VirusTotal API key:
-   - Enter your API key and click "Set API Key".
-2. Search for a hash:
-   - Enter a hash (e.g., `ced3557310b98b8a1ede8c1c24c4997a2eb2e05e561dd0b6ca36627f0d987d14`) and click "Search".
-3. View the results:
-   - The results will be displayed in collapsible sections.
-4. Download the results:
-   - Click "Download CSV" to save the results as a CSV file.
-5. Clear the results:
-   - Click "Clear Results" to remove all stored data.
+Interactive docs are at `/docs`. Indicators are passed as a query parameter, so URLs need no
+escaping.
 
----
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/classify?indicator=` | How the service reads a string, without querying any provider |
+| `GET /api/lookup?indicator=` | The normalised report |
+| `GET /api/behaviour?indicator=` | Sandbox activity and ATT&CK coverage, for file hashes |
+| `GET /api/relations?indicator=` | Connected indicators |
+| `GET /api/history` | This session's lookups |
+| `GET /api/history/export.csv` | This session's lookups as CSV |
+| `DELETE /api/history` | Discard this session's lookups |
+| `GET /api/health` | Service version and provider availability |
 
-## Troubleshooting
+History is keyed to a session cookie, so one browser's lookups stay separate from another's.
 
-- **API Key Not Set**: Ensure you set your VirusTotal API key before making any queries.
-- **Invalid Hash**: Ensure the hash you are querying is valid (MD5, SHA-1, or SHA-256).
-- **No Results**: If no results are displayed, check the hash and ensure it exists in VirusTotal's database.
+## Tests
 
----
+```bash
+cd backend && pytest
+```
+
+176 tests. Upstream responses are mocked with `respx`, so the suite runs offline.
+
+## Refreshing the ATT&CK data
+
+The bundled technique-to-mitigation dataset is built from MITRE's official Enterprise ATT&CK STIX
+bundle and currently covers 586 techniques. Regenerate it after an ATT&CK release:
+
+```bash
+python tools/refresh_mitre_mitigations.py                    # current release
+python tools/refresh_mitre_mitigations.py --version v18.0    # pin a release
+```
+
+## Layout
+
+```
+backend/
+  app/
+    ioc.py                 indicator recognition and refanging
+    models.py              the normalised report shape
+    providers/             VirusTotal and AbuseIPDB clients
+    services/              caching, normalisation, ATT&CK mapping, export
+    routers/               HTTP surface
+  tests/
+frontend/
+  src/components/          verdict banner, engine meter, report panels
+tools/
+  refresh_mitre_mitigations.py
+```
+
+## Background
+
+IoC Hunter started as a take-home for a threat intelligence interview: a single-file FastAPI script
+that looked up file hashes on VirusTotal and dumped the result to CSV. This version keeps the idea
+and rebuilds the rest — multi-indicator support, a normalised report shape, on-demand loading around
+the free-tier rate limit, a React and TypeScript frontend, and a test suite.
 
 ## Acknowledgments
 
-- [VirusTotal](https://www.virustotal.com/) for providing the API.
-- [FastAPI](https://fastapi.tiangolo.com/) for the web framework.
-
----
+- [VirusTotal](https://www.virustotal.com/) and [AbuseIPDB](https://www.abuseipdb.com/) for their APIs.
+- [MITRE ATT&CK](https://attack.mitre.org/) for the technique and mitigation data.
