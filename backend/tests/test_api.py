@@ -15,10 +15,17 @@ VT = "https://www.virustotal.com/api/v3"
 EICAR_MD5 = "44d88612fea8a8f36de82e1278abb02f"
 
 
+def make_settings(**overrides: object) -> Settings:
+    """Build settings that ignore any local `.env`, so tests read the same anywhere."""
+    values: dict[str, object] = {"VT_API_KEY": "", "ABUSEIPDB_API_KEY": ""}
+    values.update(overrides)
+    return Settings(_env_file=None, **values)
+
+
 @pytest.fixture
 def settings() -> Settings:
     """Settings with a VirusTotal credential and caching enabled."""
-    return Settings(VT_API_KEY="test-key", cache_ttl_seconds=300)
+    return make_settings(VT_API_KEY="test-key", cache_ttl_seconds=300)
 
 
 @pytest.fixture
@@ -53,7 +60,7 @@ class TestHealthEndpoint:
         assert providers["AbuseIPDB"]["configured"] is False
 
     def test_a_service_without_a_virustotal_key_reports_itself_degraded(self):
-        app.dependency_overrides[get_settings] = lambda: Settings(VT_API_KEY="")
+        app.dependency_overrides[get_settings] = lambda: make_settings()
         with TestClient(app) as unconfigured:
             assert unconfigured.get("/api/health").json()["status"] == "degraded"
         app.dependency_overrides.clear()
@@ -140,7 +147,7 @@ class TestLookupEndpoint:
         assert response.status_code == 422
 
     def test_a_missing_virustotal_key_returns_service_unavailable(self):
-        unconfigured = Settings(VT_API_KEY="")
+        unconfigured = make_settings()
         app.dependency_overrides[get_settings] = lambda: unconfigured
         app.dependency_overrides[get_service] = lambda: IntelService(unconfigured)
         with TestClient(app) as test_client:
