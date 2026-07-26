@@ -4,6 +4,8 @@ Threat intelligence triage for the four things that actually land in a ticket: *
 addresses, domains and URLs**. Paste an indicator — defanged or not — and get one report shape back,
 whatever type it was.
 
+`FastAPI` · `React` · `TypeScript` · `Docker` · `VirusTotal` · `AbuseIPDB` · `MITRE ATT&CK` · 221 tests
+
 ![IoC Hunter showing a malicious verdict](docs/screenshot-malicious.png)
 
 ---
