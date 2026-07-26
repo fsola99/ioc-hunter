@@ -176,6 +176,50 @@ export interface RelationsReport {
   cached: boolean;
 }
 
+export interface AttackTechnique {
+  id: string;
+  name: string;
+  description: string;
+  platforms: string[];
+  tactics: string[];
+  is_subtechnique: boolean;
+  parent: string | null;
+  url: string | null;
+  mitigations: Mitigation[];
+}
+
+export interface AttackTechniqueSummary {
+  id: string;
+  name: string;
+  tactics: string[];
+  platforms: string[];
+  mitigation_count: number;
+  subtechnique_count: number;
+}
+
+export interface AttackTactic {
+  id: string;
+  name: string;
+  shortname: string;
+  description: string;
+  url: string | null;
+  techniques: AttackTechniqueSummary[];
+}
+
+export interface AttackMatrix {
+  version: string;
+  technique_count: number;
+  platforms: string[];
+  tactics: AttackTactic[];
+}
+
+export interface AttackTechniqueDetail {
+  technique: AttackTechnique;
+  tactic_names: Record<string, string>;
+  subtechniques: AttackTechnique[];
+  parent: AttackTechnique | null;
+}
+
 export interface ClassificationResult {
   raw_input: string;
   indicator: string;

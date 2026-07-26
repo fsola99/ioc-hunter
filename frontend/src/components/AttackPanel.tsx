@@ -3,10 +3,11 @@ import type { SandboxMitre } from "../types";
 
 interface Props {
   sandboxes: SandboxMitre[];
+  onOpenTechnique: (id: string) => void;
 }
 
 /** ATT&CK tactics and techniques observed in detonation, each with its mitigations. */
-export function AttackPanel({ sandboxes }: Props) {
+export function AttackPanel({ sandboxes, onOpenTechnique }: Props) {
   if (sandboxes.length === 0) {
     return (
       <p className="muted">
@@ -29,7 +30,14 @@ export function AttackPanel({ sandboxes }: Props) {
               {tactic.techniques.map((technique) => (
                 <article className="technique" key={`${tactic.id}-${technique.id}`}>
                   <header className="technique-head">
-                    <span className="technique-id">{technique.id}</span>
+                    <button
+                      className="technique-id technique-link"
+                      type="button"
+                      onClick={() => onOpenTechnique(technique.id)}
+                      title={`Open ${technique.id} in the ATT&CK matrix`}
+                    >
+                      {technique.id}
+                    </button>
                     <span className="technique-name">{technique.name}</span>
                     {technique.severities.length > 0 && (
                       <span className="severity">{technique.severities.map(severity).join(" / ")}</span>

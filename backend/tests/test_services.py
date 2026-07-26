@@ -7,7 +7,7 @@ from app.models import Report
 from app.services.cache import TTLCache
 from app.services.export import reports_to_csv
 from app.services.history import HistoryStore
-from app.services.mitre import covered_techniques, mitigations_for
+from app.services.attack import catalogue_size, mitigations_for
 from app.services.normalize import build_report
 
 
@@ -16,7 +16,7 @@ def report_for(indicator: str, attributes: dict) -> Report:
 
 
 class TestMitigationsFor:
-    """Contract of `app.services.mitre.mitigations_for`."""
+    """Contract of `app.services.attack.mitigations_for`."""
 
     def test_a_covered_technique_returns_its_mitigations(self):
         assert mitigations_for("T1027")
@@ -38,11 +38,11 @@ class TestMitigationsFor:
         assert mitigations_for("T9999") == []
 
 
-class TestCoveredTechniques:
-    """Contract of `app.services.mitre.covered_techniques`."""
+class TestCatalogueSize:
+    """Contract of `app.services.attack.catalogue_size`."""
 
-    def test_the_bundled_dataset_covers_at_least_one_technique(self):
-        assert covered_techniques() > 0
+    def test_the_bundled_catalogue_holds_techniques(self):
+        assert catalogue_size() > 0
 
 
 class TestTTLCache:

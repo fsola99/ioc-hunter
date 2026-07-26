@@ -8,6 +8,7 @@ import { EmptyState } from "./components/EmptyState";
 import { ErrorNotice } from "./components/ErrorNotice";
 import { FactsPanel } from "./components/FactsPanel";
 import { HistoryRail } from "./components/HistoryRail";
+import { MatrixView } from "./components/MatrixView";
 import { RelationsPanel } from "./components/RelationsPanel";
 import { SearchBar } from "./components/SearchBar";
 import { VendorTable } from "./components/VendorTable";
@@ -15,6 +16,7 @@ import { VerdictBanner } from "./components/VerdictBanner";
 import type { BehaviourReport, RelationsReport, Report, ServiceStatus } from "./types";
 
 type TabId = "engines" | "attack" | "behaviour" | "relations";
+type View = "triage" | "matrix";
 
 const TAB_LABELS: Record<TabId, string> = {
   engines: "Engines",
@@ -43,12 +45,17 @@ export function App() {
   const [demandBusy, setDemandBusy] = useState(false);
   const [demandError, setDemandError] = useState<string | null>(null);
 
+  const [view, setView] = useState<View>("triage");
+  const [openTechnique, setOpenTechnique] = useState<string | null>(null);
+
   useEffect(() => {
     api.status().then(setService).catch(() => setService(null));
     api.history().then(setEntries).catch(() => setEntries([]));
   }, []);
 
   const runLookup = useCallback(async (indicator: string) => {
+    setView("triage");
+    setOpenTechnique(null);
     setQuery(indicator);
     setBusy(true);
     setError(null);
@@ -103,12 +110,49 @@ export function App() {
   const tabs = useMemo(() => (report ? tabsFor(report) : []), [report]);
   const verdict = report?.verdict ?? "unknown";
 
+  /** Techniques this file was observed using, marked when browsing the matrix. */
+  const observed = useMemo(() => {
+    const ids = new Set<string>();
+    for (const sandbox of behaviour?.mitre ?? []) {
+      for (const tactic of sandbox.tactics) {
+        for (const technique of tactic.techniques) {
+          ids.add(technique.id);
+          ids.add(technique.id.split(".")[0] ?? technique.id);
+        }
+      }
+    }
+    return ids;
+  }, [behaviour]);
+
+  const openInMatrix = useCallback((id: string) => {
+    setView("matrix");
+    setOpenTechnique(id);
+  }, []);
+
   return (
-    <div className="shell" data-verdict={verdict}>
+    <div className="shell" data-verdict={view === "matrix" ? "harmless" : verdict}>
       <header className="statusbar">
         <p className="wordmark">
           IoC Hunter <span>v{service?.version ?? "—"}</span>
         </p>
+
+        <nav className="viewswitch" aria-label="View">
+          <button
+            type="button"
+            aria-current={view === "triage"}
+            onClick={() => setView("triage")}
+          >
+            Triage
+          </button>
+          <button
+            type="button"
+            aria-current={view === "matrix"}
+            onClick={() => setView("matrix")}
+          >
+            ATT&amp;CK matrix
+          </button>
+        </nav>
+
         <div className="providers">
           {service?.providers.map((provider) => (
             <span
@@ -123,9 +167,18 @@ export function App() {
         </div>
       </header>
 
-      <div className="workspace">
-        <main className="main">
-          <SearchBar value={query} busy={busy} onChange={setQuery} onSubmit={runLookup} />
+      {view === "matrix" ? (
+        <main className="main main-wide">
+          <MatrixView
+            highlighted={observed}
+            openTechnique={openTechnique}
+            onOpenTechnique={setOpenTechnique}
+          />
+        </main>
+      ) : (
+        <div className="workspace">
+          <main className="main">
+            <SearchBar value={query} busy={busy} onChange={setQuery} onSubmit={runLookup} />
 
           {busy && <p className="scanning">querying providers</p>}
           {error && !busy && <ErrorNotice error={error} />}
@@ -162,7 +215,10 @@ export function App() {
 
                     {tab === "attack" &&
                       (behaviour ? (
-                        <AttackPanel sandboxes={behaviour.mitre} />
+                        <AttackPanel
+                          sandboxes={behaviour.mitre}
+                          onOpenTechnique={openInMatrix}
+                        />
                       ) : (
                         <OnDemand
                           label="Load sandbox report"
@@ -203,15 +259,16 @@ export function App() {
               </div>
             </>
           )}
-        </main>
+          </main>
 
-        <HistoryRail
-          entries={entries}
-          current={report?.indicator ?? null}
-          onSelect={runLookup}
-          onClear={clearHistory}
-        />
-      </div>
+          <HistoryRail
+            entries={entries}
+            current={report?.indicator ?? null}
+            onSelect={runLookup}
+            onClear={clearHistory}
+          />
+        </div>
+      )}
     </div>
   );
 }

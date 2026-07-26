@@ -12,7 +12,7 @@ from .config import get_settings
 from .dependencies import SESSION_COOKIE
 from .errors import ProviderError
 from .ioc import UnrecognizedIoCError
-from .routers import health, lookup
+from .routers import attack, health, lookup
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)-8s %(name)s: %(message)s"
@@ -42,6 +42,7 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(lookup.router)
+app.include_router(attack.router)
 
 
 @app.middleware("http")

@@ -18,9 +18,12 @@ whatever type it was.
 - **Maps sandbox techniques to ATT&CK mitigations.** Techniques observed during detonation are
   matched against MITRE's own technique-to-mitigation data, so the report says what to *do* about a
   finding, not only what happened.
+- **Browses the ATT&CK matrix offline.** The whole Enterprise matrix ships with the app — 15 tactics,
+  222 techniques and 475 sub-techniques — filterable by platform and searchable by name, with no
+  network call. A technique observed in a triage is one click from its place in the matrix.
 - **Pivots between indicators.** Contacted domains and passive DNS resolutions are one click from
   becoming the next lookup.
-- **Exports the session.** Everything you looked up, one row per indicator, as CSV.
+- **Exports.** The session's lookups, or the entire ATT&CK catalogue, as CSV.
 
 ## Rate limits, and why the UI is shaped this way
 
@@ -95,8 +98,27 @@ escaping.
 | `GET /api/history/export.csv` | This session's lookups as CSV |
 | `DELETE /api/history` | Discard this session's lookups |
 | `GET /api/health` | Service version and provider availability |
+| `GET /api/attack/matrix?q=&platform=` | The ATT&CK matrix, optionally filtered |
+| `GET /api/attack/techniques/{id}` | One technique with its sub-techniques and parent |
+| `GET /api/attack/export.csv` | The whole ATT&CK catalogue as CSV |
 
-History is keyed to a session cookie, so one browser's lookups stay separate from another's.
+History is keyed to a session cookie, so one browser's lookups stay separate from another's. The
+ATT&CK endpoints read the bundled catalogue and never call out to a provider, so they cost no quota.
+
+## The ATT&CK matrix
+
+![Browsing the Enterprise ATT&CK matrix](docs/screenshot-matrix.png)
+
+The matrix view is a browsable copy of Enterprise ATT&CK, served from a 0.9 MB file that ships with
+the app. Tactics run in MITRE's own order; each cell is marked by whether ATT&CK records a mitigation
+for that technique, which is usually the question a defender is asking of the matrix. Opening a cell
+gives the description, platforms, mitigations and sub-techniques.
+
+After you triage a file and load its sandbox report, the techniques that sample was observed using
+are highlighted in the matrix, and technique ids in the report link straight to them.
+
+`GET /api/attack/export.csv` returns the whole catalogue as one row per technique and sub-technique —
+id, name, tactics, platforms, mitigations, description and link.
 
 ## Tests
 
@@ -104,17 +126,20 @@ History is keyed to a session cookie, so one browser's lookups stay separate fro
 cd backend && pytest
 ```
 
-176 tests. Upstream responses are mocked with `respx`, so the suite runs offline.
+221 tests. Upstream responses are mocked with `respx`, so the suite runs offline.
 
 ## Refreshing the ATT&CK data
 
-The bundled technique-to-mitigation dataset is built from MITRE's official Enterprise ATT&CK STIX
-bundle and currently covers 586 techniques. Regenerate it after an ATT&CK release:
+The bundled catalogue is built from MITRE's official Enterprise ATT&CK STIX bundle. Regenerate it
+after an ATT&CK release:
 
 ```bash
-python tools/refresh_mitre_mitigations.py                    # current release
-python tools/refresh_mitre_mitigations.py --version v18.0    # pin a release
+python tools/refresh_attack_data.py                    # current release
+python tools/refresh_attack_data.py --version v18.0    # pin a release
 ```
+
+The tool resolves technique-to-mitigation relationships, orders tactics as the matrix presents them,
+and reduces ATT&CK's markdown and inline `(Citation: …)` markers to plain prose.
 
 ## Layout
 
@@ -123,14 +148,15 @@ backend/
   app/
     ioc.py                 indicator recognition and refanging
     models.py              the normalised report shape
+    data/attack.json       the bundled ATT&CK catalogue
     providers/             VirusTotal and AbuseIPDB clients
-    services/              caching, normalisation, ATT&CK mapping, export
+    services/              caching, normalisation, ATT&CK catalogue, export
     routers/               HTTP surface
   tests/
 frontend/
-  src/components/          verdict banner, engine meter, report panels
+  src/components/          verdict banner, engine meter, report panels, matrix
 tools/
-  refresh_mitre_mitigations.py
+  refresh_attack_data.py
 ```
 
 ## Background
@@ -139,6 +165,11 @@ IoC Hunter started as a take-home for a threat intelligence interview: a single-
 that looked up file hashes on VirusTotal and dumped the result to CSV. This version keeps the idea
 and rebuilds the rest — multi-indicator support, a normalised report shape, on-demand loading around
 the free-tier rate limit, a React and TypeScript frontend, and a test suite.
+
+The matrix view absorbs an earlier project of mine, `ttps-magician`, which scraped every technique
+page on attack.mitre.org one request at a time to build a spreadsheet. It reads the official STIX
+bundle instead: one download rather than roughly 1,200 scraped pages, nothing to break when MITRE
+changes their markup, and the same tabular export is still one click away.
 
 ## Acknowledgments
 

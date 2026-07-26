@@ -24,7 +24,7 @@ from ..models import (
     Verdict,
 )
 from ..providers import virustotal
-from .mitre import mitigations_for
+from .attack import mitigations_for
 
 MALICIOUS_THRESHOLD = 3
 

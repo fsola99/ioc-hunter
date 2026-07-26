@@ -241,6 +241,60 @@ class RelationsReport(BaseModel):
     cached: bool = False
 
 
+class AttackTechnique(BaseModel):
+    """A technique or sub-technique in the bundled ATT&CK catalogue."""
+
+    id: str
+    name: str
+    description: str = ""
+    platforms: list[str] = Field(default_factory=list)
+    tactics: list[str] = Field(default_factory=list)
+    is_subtechnique: bool = False
+    parent: str | None = None
+    url: str | None = None
+    mitigations: list[Mitigation] = Field(default_factory=list)
+
+
+class AttackTechniqueSummary(BaseModel):
+    """A technique as it appears in a matrix cell."""
+
+    id: str
+    name: str
+    tactics: list[str] = Field(default_factory=list)
+    platforms: list[str] = Field(default_factory=list)
+    mitigation_count: int = 0
+    subtechnique_count: int = 0
+
+
+class AttackTactic(BaseModel):
+    """A tactic column of the ATT&CK matrix."""
+
+    id: str
+    name: str
+    shortname: str
+    description: str = ""
+    url: str | None = None
+    techniques: list[AttackTechniqueSummary] = Field(default_factory=list)
+
+
+class AttackMatrix(BaseModel):
+    """The Enterprise ATT&CK matrix, in the order MITRE presents its tactics."""
+
+    version: str
+    technique_count: int
+    platforms: list[str] = Field(default_factory=list)
+    tactics: list[AttackTactic] = Field(default_factory=list)
+
+
+class AttackTechniqueDetail(BaseModel):
+    """A technique together with its sub-techniques and the tactics it belongs to."""
+
+    technique: AttackTechnique
+    tactic_names: dict[str, str] = Field(default_factory=dict)
+    subtechniques: list[AttackTechnique] = Field(default_factory=list)
+    parent: AttackTechnique | None = None
+
+
 class ClassificationResult(BaseModel):
     """How the service interprets a candidate indicator string."""
 

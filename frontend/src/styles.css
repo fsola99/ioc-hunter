@@ -884,6 +884,390 @@ td.value {
   color: var(--text-faint);
 }
 
+/* --- View switch ---------------------------------------------------------- */
+
+.viewswitch {
+  display: flex;
+  gap: 0.15rem;
+  padding: 0.15rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.viewswitch button {
+  padding: 0.3rem 0.8rem;
+  font-family: var(--display);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  border-radius: 2px;
+  transition: color 140ms var(--ease), background 140ms var(--ease);
+}
+
+.viewswitch button:hover {
+  color: var(--text-dim);
+}
+
+.viewswitch button[aria-current="true"] {
+  color: var(--ink);
+  background: var(--accent);
+}
+
+/* --- ATT&CK matrix -------------------------------------------------------- */
+
+.main-wide {
+  max-width: none;
+}
+
+.matrix-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.matrix-filters {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.matrix-search {
+  width: min(22rem, 60vw);
+  padding: 0.6rem 0.85rem;
+  font-size: 13px;
+}
+
+.matrix-select {
+  padding: 0.6rem 0.85rem;
+  font-family: var(--data);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.matrix-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.matrix-meta {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.matrix-meta b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.matrix-key {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.key-swatch {
+  width: 3px;
+  height: 12px;
+  flex: none;
+  background: var(--line-bright);
+}
+
+.key-swatch[data-covered="true"] {
+  background: var(--harmless);
+}
+
+.key-swatch[data-observed="true"] {
+  width: 12px;
+  background: color-mix(in srgb, var(--malicious) 40%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--malicious) 60%, transparent);
+}
+
+.matrix-empty {
+  margin-top: 2rem;
+}
+
+.matrix-scroll {
+  overflow-x: auto;
+  padding-bottom: 1rem;
+  scrollbar-width: thin;
+}
+
+.matrix-grid {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  min-width: min-content;
+}
+
+.matrix-column {
+  flex: 0 0 13.5rem;
+  min-width: 0;
+}
+
+.matrix-column-head {
+  padding: 0 0 0.6rem;
+  border-bottom: 1px solid var(--line-bright);
+  margin-bottom: 0.5rem;
+}
+
+.matrix-tactic {
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.matrix-tactic-meta {
+  margin-top: 0.2rem;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+}
+
+.matrix-cells {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.matrix-cell {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.45rem 1.6rem 0.45rem 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-bright);
+  border-radius: var(--radius);
+  transition: background 120ms var(--ease), border-color 120ms var(--ease);
+}
+
+.matrix-cell[data-covered="true"] {
+  border-left-color: var(--harmless);
+}
+
+.matrix-cell:hover {
+  background: var(--surface-hover);
+  border-color: var(--line-bright);
+}
+
+.matrix-cell[data-observed="true"] {
+  background: color-mix(in srgb, var(--malicious) 13%, var(--surface));
+  border-color: color-mix(in srgb, var(--malicious) 45%, transparent);
+}
+
+.matrix-cell-id {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.matrix-cell[data-observed="true"] .matrix-cell-id {
+  color: var(--malicious);
+}
+
+.matrix-cell-name {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-dim);
+}
+
+.matrix-cell:hover .matrix-cell-name {
+  color: var(--text);
+}
+
+.matrix-cell-subs {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.5rem;
+  font-size: 9px;
+  color: var(--text-faint);
+}
+
+/* --- Technique drawer ----------------------------------------------------- */
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--ink) 72%, transparent);
+  backdrop-filter: blur(3px);
+  display: flex;
+  justify-content: flex-end;
+  animation: fade-in 160ms var(--ease);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.drawer {
+  width: min(40rem, 100%);
+  height: 100%;
+  overflow-y: auto;
+  background: var(--surface);
+  border-left: 1px solid var(--line-bright);
+  animation: slide-in 220ms var(--ease);
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(3%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.drawer-head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.35rem 1.5rem 1.1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.drawer-title {
+  margin-top: 0.35rem;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.drawer-title .technique-id {
+  font-family: var(--data);
+}
+
+.drawer-close {
+  font-size: 14px;
+  color: var(--text-faint);
+  padding: 0.2rem 0.4rem;
+  transition: color 140ms var(--ease);
+}
+
+.drawer-close:hover {
+  color: var(--text);
+}
+
+.drawer-body {
+  padding: 1.35rem 1.5rem 3rem;
+}
+
+.drawer-parent {
+  display: block;
+  margin-bottom: 1rem;
+  font-size: 11px;
+  color: var(--text-faint);
+  transition: color 140ms var(--ease);
+}
+
+.drawer-parent:hover {
+  color: var(--accent);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.drawer-text {
+  margin-top: 1.1rem;
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--text-dim);
+}
+
+.drawer-section {
+  margin-top: 1.6rem;
+}
+
+.drawer-section .eyebrow {
+  margin-bottom: 0.55rem;
+}
+
+.sub-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.sub-list button {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-align: left;
+  transition: border-color 140ms var(--ease), color 140ms var(--ease);
+}
+
+.sub-list button:hover {
+  border-color: var(--line-bright);
+  color: var(--text);
+}
+
+.sub-count {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--harmless);
+  white-space: nowrap;
+}
+
+.drawer-source {
+  margin-top: 1.75rem;
+  font-size: 11px;
+}
+
+.technique-link {
+  border-bottom: 1px dotted color-mix(in srgb, var(--accent) 50%, transparent);
+  transition: border-color 140ms var(--ease);
+}
+
+.technique-link:hover {
+  border-bottom-color: var(--accent);
+}
+
 /* --- States --------------------------------------------------------------- */
 
 .notice {

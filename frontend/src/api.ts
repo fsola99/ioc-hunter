@@ -1,4 +1,6 @@
 import type {
+  AttackMatrix,
+  AttackTechniqueDetail,
   BehaviourReport,
   ClassificationResult,
   RelationsReport,
@@ -98,3 +100,19 @@ export async function clearHistory(): Promise<void> {
 
 /** The URL that downloads this session's lookups as CSV. */
 export const exportUrl = "/api/history/export.csv";
+
+/** Fetch the ATT&CK matrix, optionally narrowed by text and platform. */
+export function attackMatrix(query = "", platform = ""): Promise<AttackMatrix> {
+  const params: Record<string, string> = {};
+  if (query) params.q = query;
+  if (platform) params.platform = platform;
+  return request<AttackMatrix>("/attack/matrix", params);
+}
+
+/** Fetch one ATT&CK technique with its sub-techniques and parent. */
+export function attackTechnique(id: string): Promise<AttackTechniqueDetail> {
+  return request<AttackTechniqueDetail>(`/attack/techniques/${encodeURIComponent(id)}`);
+}
+
+/** The URL that downloads the whole ATT&CK catalogue as CSV. */
+export const attackExportUrl = "/api/attack/export.csv";

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 
 from ..config import Settings, get_settings
 from ..models import ProviderStatus, ServiceStatus
-from ..services.mitre import covered_techniques
+from ..services.attack import catalogue_size
 
 router = APIRouter(prefix="/api", tags=["service"])
 
@@ -39,9 +39,9 @@ def health(settings: Annotated[Settings, Depends(get_settings)]) -> ServiceStatu
                 ),
             ),
             ProviderStatus(
-                name="MITRE ATT&CK mitigations",
-                configured=covered_techniques() > 0,
-                detail=f"Bundled dataset covers {covered_techniques()} techniques.",
+                name="MITRE ATT&CK",
+                configured=catalogue_size() > 0,
+                detail=f"Bundled catalogue covers {catalogue_size()} techniques and sub-techniques.",
             ),
         ],
     )
