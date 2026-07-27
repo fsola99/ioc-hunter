@@ -170,8 +170,19 @@ the free-tier rate limit, a React and TypeScript frontend, and a test suite.
 
 The matrix view absorbs an earlier project of mine, `ttps-magician`, which scraped every technique
 page on attack.mitre.org one request at a time to build a spreadsheet. It reads the official STIX
-bundle instead: one download rather than roughly 1,200 scraped pages, nothing to break when MITRE
+bundle instead: one download rather than roughly 700 scraped pages, nothing to break when MITRE
 changes their markup, and the same tabular export is still one click away.
+
+## The magicians
+
+Alongside this sit a few small, standalone scripts — the ones that came first, each answering one
+question without a server or a build step:
+
+- [ttps-magician](https://github.com/fsola99/ttps-magician) — every ATT&CK technique, as a spreadsheet
+- [groups-magician](https://github.com/fsola99/groups-magician) — which techniques a given threat group uses
+- [json-magician](https://github.com/fsola99/json-magician) — what changed between two ATT&CK releases
+- [hash-magician-reloaded](https://github.com/fsola99/hash-magician-reloaded) — hashes of every file in a folder, as CSV
+- [Hash-Magician](https://github.com/fsola99/Hash-Magician) — the same, on PySimpleGUI
 
 ## Acknowledgments
 
